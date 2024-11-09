@@ -3,7 +3,7 @@ class AgendaMedizonaWidget extends HTMLElement {
         super();
         this.shadow = this.attachShadow({ mode: "open" });
         this.wrapperPrincipal = document.createElement("div");
-        this.showCalendar = this.getAttribute("showCalendar");
+        this.showCalendar = this.getAttribute("showCalendar") !== null;
         this.currentDate = this.getCurrentDate();
     }
     
@@ -12,7 +12,7 @@ class AgendaMedizonaWidget extends HTMLElement {
     }
 
     initWidget(){
-        const width = this.getAttribute("width");
+        const width = this.getAttribute("width") || "100%";
         this.wrapperPrincipal.setAttribute("class", "wrapperPrincipal");
          
 
@@ -48,7 +48,7 @@ class AgendaMedizonaWidget extends HTMLElement {
 
             .wrapperAppointments{
                 background-color:white;
-                width:${Boolean(this.showCalendar) ? "100%":"50%"};
+                width:${this.showCalendar? "100%":"50%"};
                 height:auto;
                 display:flex;
             }
@@ -96,6 +96,12 @@ class AgendaMedizonaWidget extends HTMLElement {
         const appointmentItem = document.createElement("div");
         appointmentItem.setAttribute("class", "appointmentItem");
 
+        const point = document.createElement("div");
+        point.setAttribute("class", "divPoint");
+
+        const divTitle = document.createElement("div");
+        divTitle.setAttribute("class", "divTitle");
+
         const appointmentTitle = document.createElement("p");
         appointmentTitle.textContent = 'Cirugía';
         appointmentTitle.setAttribute("class", "appointmentTitle");
@@ -113,7 +119,9 @@ class AgendaMedizonaWidget extends HTMLElement {
         appointmentDate.setAttribute("class","appointmentDate");
 
 
-        appointmentItem.appendChild(appointmentTitle);
+        divTitle.appendChild(point);
+        divTitle.appendChild(appointmentTitle);
+        appointmentItem.appendChild(divTitle);
         appointmentDetails.appendChild(patientName);
         appointmentDetails.appendChild(appointmentDate);
 
@@ -125,17 +133,33 @@ class AgendaMedizonaWidget extends HTMLElement {
                 display:flex;
                 flex-direction:column;
                 justify-content:space-between;
-                border-left:3px solid ${styles.borderColor};
+                border-left:4px solid ${styles.borderColor};
                 border-radius: 0px 0px 0px 0px;
-                padding:0px 0px 0px 3px;
-                margin:0px 0px 4px 0px;
+                padding:0px 0px 0px 4px;
+                margin:0px 0px 10px 0px;
+            }
+
+            .divTitle{
+                width:100%;
+                display:flex;
+                justify-content:flex-start;
+                align-items:center;
+            }
+
+            .divPoint{
+                width:5px;
+                height:5px;
+                display: ${styles?.pointColor ? 'block':'none'};
+                background-color:${styles?.pointColor};
+                border-radius:100%
+                margin:0px 4px 0px 0px;
             }
                 
             .appointmentTitle{
                 color:#181C32;
-                font-wight:bold;
-                font-size:20px;
-                margin:5px 0px 5px 0px;
+                font-weight:bold;
+                font-size:18px;
+                margin:5px 0px 10px 0px;
             }
 
             .appointmentDetails{
@@ -144,21 +168,27 @@ class AgendaMedizonaWidget extends HTMLElement {
                 flex-direction:column;
                 justify-content: flex-end;
             }
-
+                
             .patientName{
                 margin:0;
+                font-size:14px;
             }
 
             .appointmentDate{
                 margin:0;
+                font-size:14px;
+                font-weight:bold;
             }
         `;
-
         appointmentItem.appendChild(appointmentDetails);
         appointmentDetails.appendChild(style);
+        console.log("ITEM:", appointmentItem);
+        console.log("styles", style);
+        console.log("-----------------------");
 
         //Retorna el item del appointment
         return appointmentItem;
+
     };
 
     getAppointmentData(){
@@ -170,8 +200,13 @@ class AgendaMedizonaWidget extends HTMLElement {
     }
 
     printData(){
-        // 
-        // parentLeft.appendChild();
+
+        for(let i = 0; i<3; i++){
+            const parentRight = this.shadow.getElementById("listAppointments");
+            parentRight.appendChild(this.createItem({
+                borderColor:'#34367F',
+            },[]));
+        }
 
         const parentLeft =  this.shadow.getElementById("todayAppointment");
         
@@ -192,14 +227,10 @@ class AgendaMedizonaWidget extends HTMLElement {
         parentLeft.appendChild(todayDate);
         parentLeft.appendChild(this.createItem({
             borderColor:'#E75B0B',
+            pointColor:'#E75B0B',
         },[]));
 
-        for(let i = 0; i<3; i++){
-            const parentRight = this.shadow.getElementById("listAppointments");
-            parentRight.appendChild(this.createItem({
-                borderColor:'#34367F',
-            },[]));
-        }
+        
     }
 
     getCurrentDate(){
