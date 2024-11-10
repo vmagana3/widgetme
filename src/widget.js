@@ -4,7 +4,7 @@ class AgendaMedizonaWidget extends HTMLElement {
         this.shadow = this.attachShadow({ mode: "open" });
         this.wrapperPrincipal = document.createElement("div");
         this.showCalendar = this.getAttribute("showCalendar") !== null;
-        const width = this.getAttribute("width") || "100%";
+        this.width = this.getAttribute("width") || "100%";
         this.currentDate = this.getCurrentDate();
         this.appointmentList = [];
         this.currentAppointmentItem = {};
@@ -48,10 +48,9 @@ class AgendaMedizonaWidget extends HTMLElement {
         const style =  document.createElement("style");
          style.textContent = `
          
-            @import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Montserrat:wght@100..900&display=swap');
             
             .wrapperPrincipal{
-                background-color:white;
                 width:${this.width};
                 height:auto;
                 border:1px solid #D5D8E3;
@@ -62,10 +61,10 @@ class AgendaMedizonaWidget extends HTMLElement {
             }
 
             .wrapperAppointments{
-                background-color:white;
                 width:${this.showCalendar? "100%":"50%"};
-                height:auto;
+                height:80%;
                 display:flex;
+                margin:0px 0px 0px 15px;
             }
 
             .divLeft{
@@ -78,6 +77,7 @@ class AgendaMedizonaWidget extends HTMLElement {
             .divRight{
                 display:flex;
                 flex-direction:column;
+                justify-content:space-between;
                 width:50%;
             } 
         `;
@@ -92,15 +92,34 @@ class AgendaMedizonaWidget extends HTMLElement {
 
     createCalendar(){
 
+        console.log("CURRENT DATE:", this.currentDate);
+
          //DIV CALENDAR
          const divCalendar = document.createElement("div");
          divCalendar.setAttribute("class", "divCalendar");
-         divCalendar.setAttribute("id", "calendarDiv")
+         divCalendar.setAttribute("id", "calendarDiv");
 
+         //CALENDAR MONTH AND YEAR
+         const monthYear = document.createElement("div");
+         monthYear.setAttribute("class", "monthYearDiv");
+        
+
+         const monthText = document.createElement("p");
+         monthText.setAttribute("class", "monthText");
+         monthText.textContent = this.currentDate.monthName;
+
+         const yearText = document.createElement("p");
+         yearText.setAttribute("class", "yearText");
+         yearText.textContent = this.currentDate.year;
+
+         //CALENDAR HEADER
         const headerDays =  document.createElement("div");
         headerDays.setAttribute("class", "headerDays");
 
-       
+        //CALENDAR GRID
+        const gridMonth = document.createElement("div");
+        gridMonth.setAttribute("class", "gridMonth");
+        gridMonth.setAttribute("id", "grid");
 
 
         const style = document.createElement("style");
@@ -112,21 +131,72 @@ class AgendaMedizonaWidget extends HTMLElement {
                 height:auto;
             }
 
+            .monthYearDiv{
+                width:70%;
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                margin:0px 0px 20px 0px;
+            }
+
+            .monthText{
+                font-size:24px;
+                font-weight:bold;
+                margin: 0px 10px 0px 0px;
+            }
+
+            .yearText{
+                font-size:24px;
+                margin:0;
+            }
+
             .headerDays{
                 display:grid;
                 grid-template-columns:repeat(7,1fr);
                 grid-gap:10px;
+                color:#3F4254;
+            }
+
+            .dayHeader{
+                color: #3F4254;
+                font-size:16px;
+                margin:0;
+                font-weight:bold;
+            }
+
+            .gridMonth{
+                display:grid;
+                grid-template-columns:repeat(7,1fr);
+                grid-gap:10px;
+            }
+
+            .monthGridItem{
+                font-size:16px;
+                color:#181C32;
+                margin:0;
             }
         `;
 
         for(let i = 0; i < 8; i++){
             const headerDayItem = document.createElement("span");
+            headerDayItem.setAttribute("class", "dayHeader");
             headerDayItem.textContent = this.getDayName(i, true);
             headerDays.appendChild(headerDayItem);
         }
 
+        this.currentDate.monthDays.forEach((date)=>{
+            const monthGridItem = document.createElement("p");
+            monthGridItem.setAttribute("class", "monthGridItem");
+            monthGridItem.textContent = date;
+            gridMonth.appendChild(monthGridItem);
+        });
+
         
+        monthYear.appendChild(monthText);
+        monthYear.appendChild(yearText);
+        divCalendar.appendChild(monthYear);
         divCalendar.appendChild(headerDays);
+        divCalendar.appendChild(gridMonth);
         divCalendar.appendChild(style);
         this.wrapperPrincipal.appendChild(divCalendar);
        
@@ -244,6 +314,7 @@ class AgendaMedizonaWidget extends HTMLElement {
                 display:flex;
                 flex-direction:column;
                 width:100%;
+                margin:0px 0px 15px 0px;
             }
 
              .dayName{
@@ -418,6 +489,7 @@ class AgendaMedizonaWidget extends HTMLElement {
         const month = String(today.getMonth() + 1).padStart(2, '0'); // +1 porque los meses empiezan desde 0
         const day = String(today.getDate()).padStart(2, '0'); // Asegurarse de que el día tenga 2 dígitos
 
+        console.log("MONTH:", month);
         const dayNumber = today.getDay();
         // Formatear la fecha como "YYYY-MM-DD"
         const formattedDate = `${year}-${month}-${day}`;
@@ -426,8 +498,33 @@ class AgendaMedizonaWidget extends HTMLElement {
         return {
             name:this.getDayName(dayNumber),
             number:day,
-            formatted:`${year}-${month}-${day}`,
+            formatted:formattedDate,
+            monthName:this.getMonthName(month),
+            year:year,
+            monthDays:this.getMonthDays(formattedDate),
         };
+    }
+
+    getMonthDays(dateString){
+         // Crear un objeto Date con el año y mes de la fecha proporcionada
+        const [year, month] = dateString.split("-").map(Number);
+        
+        // Obtener el último día del mes sumando 1 al mes actual y restando 1 día
+        const lastDay = new Date(year, month, 0).getDate();
+        
+        // Crear un arreglo con todos los días del mes
+        const daysInMonth = [];
+        for (let day = 1; day <= lastDay; day++) {
+            // Formatear el día para que siempre tenga dos dígitos
+            const dayFormatted = String(day).padStart(2, '0');
+            daysInMonth.push({
+                day:dayFormatted,
+                dateFormatted:`${year}-${String(month).padStart(2, '0')}-${dayFormatted}`
+            });
+        }
+
+        console.log("days in month:", daysInMonth);
+        return daysInMonth;
     }
 
      formatToAmPm(dateRange) {
@@ -452,6 +549,39 @@ class AgendaMedizonaWidget extends HTMLElement {
     
         // Retornar la hora formateada
         return `${hours}:${formattedMinutes} ${ampm}`;
+    }
+
+    getMonthName(monthNumber){
+
+        console.log("MONTH NUMBER PARAMETER:", monthNumber);
+
+        switch(monthNumber){
+            case "1":
+                return "Enero"
+            case "2":
+                return "Febrero"
+            case "3":
+                return "Marzo"
+            case "4":
+                return "Abril"
+            case "5":
+                return "Mayo"
+            case "6":
+                return "Junio"
+            case "7":
+                return "Julio"
+            case "8":
+                return "Agosto"
+            case "9":
+                return "Septiembre"
+            case "10":
+                return "Octubre"
+            case "11":
+                return "Noviembre"
+            case "12":
+                return "Diciembre"
+            
+        }
     }
 
     getDayName(number, firstLetter){
