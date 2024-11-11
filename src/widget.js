@@ -15,12 +15,6 @@ class AgendaMedizonaWidget extends HTMLElement {
     }
 
     initWidget(){
-        
-
-        
-        console.log("WIDTH:", this.width);
-        console.log("SHOW CALENDAR:", this.showCalendar);
-        
         this.wrapperPrincipal.setAttribute("class", "wrapperPrincipal");
          
 
@@ -187,7 +181,8 @@ class AgendaMedizonaWidget extends HTMLElement {
         this.currentDate.monthDays.forEach((date)=>{
             const monthGridItem = document.createElement("p");
             monthGridItem.setAttribute("class", "monthGridItem");
-            monthGridItem.textContent = date;
+            monthGridItem.setAttribute("date", date.dateFormatted);
+            monthGridItem.textContent = date.day;
             gridMonth.appendChild(monthGridItem);
         });
 
@@ -231,17 +226,10 @@ class AgendaMedizonaWidget extends HTMLElement {
 
     printData(currentAppointment, appointmentList){
 
-        console.log("DATOS SETEADOS:", this.appointmentList);
         const parentRight = this.shadow.getElementById("listAppointments");
         appointmentList.forEach((item)=>{
             parentRight.appendChild(this.createItemList(item)); 
         });
-        /* for(let i = 0; i<3; i++){
-            const parentRight = this.shadow.getElementById("listAppointments");
-            parentRight.appendChild(this.createItemList({
-                borderColor:'#34367F',
-            },[]));
-        }; */
 
         this.createCurrentAppointment();
     }
@@ -489,7 +477,6 @@ class AgendaMedizonaWidget extends HTMLElement {
         const month = String(today.getMonth() + 1).padStart(2, '0'); // +1 porque los meses empiezan desde 0
         const day = String(today.getDate()).padStart(2, '0'); // Asegurarse de que el día tenga 2 dígitos
 
-        console.log("MONTH:", month);
         const dayNumber = today.getDay();
         // Formatear la fecha como "YYYY-MM-DD"
         const formattedDate = `${year}-${month}-${day}`;
@@ -506,25 +493,40 @@ class AgendaMedizonaWidget extends HTMLElement {
     }
 
     getMonthDays(dateString){
-         // Crear un objeto Date con el año y mes de la fecha proporcionada
-        const [year, month] = dateString.split("-").map(Number);
-        
-        // Obtener el último día del mes sumando 1 al mes actual y restando 1 día
-        const lastDay = new Date(year, month, 0).getDate();
-        
-        // Crear un arreglo con todos los días del mes
-        const daysInMonth = [];
-        for (let day = 1; day <= lastDay; day++) {
-            // Formatear el día para que siempre tenga dos dígitos
-            const dayFormatted = String(day).padStart(2, '0');
-            daysInMonth.push({
-                day:dayFormatted,
-                dateFormatted:`${year}-${String(month).padStart(2, '0')}-${dayFormatted}`
-            });
+        const date = new Date(dateString);
+        const columns = [];
+        const dayStart =   new Date(date.getFullYear(), date.getMonth(), 1);
+        const dayEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+       
+
+        if (dayStart.getDay() !== 0) {
+            //const offset = (dayStart.getDay() + 6) % 7; // Calcular días hasta el lunes
+            const offset = dayStart.getDay();
+            dayStart.setDate(dayStart.getDate() - offset);
+           
         }
 
-        console.log("days in month:", daysInMonth);
-        return daysInMonth;
+        if (dayEnd.getDay() !== 6) {
+            //const offset = 7 - dayEnd.getDay(); // Calcular días hasta el domingo
+            const offset = 6 - dayEnd.getDay();
+            dayEnd.setDate(dayEnd.getDate() + offset);
+        }
+
+        while (dayStart < dayEnd) {
+            const dateKey = dayStart.toISOString().split("T")[0]; // Formato YYYY-MM-DD
+
+            columns.push({
+                date: dateKey,
+                day: dayStart.getDate().toString(),
+                today: new Date(),
+                isToday: new Date().toDateString() === dayStart.toDateString(),
+            });
+
+            dayStart.setDate(dayStart.getDate() + 1);
+        }
+
+        return columns;
     }
 
      formatToAmPm(dateRange) {
@@ -552,8 +554,6 @@ class AgendaMedizonaWidget extends HTMLElement {
     }
 
     getMonthName(monthNumber){
-
-        console.log("MONTH NUMBER PARAMETER:", monthNumber);
 
         switch(monthNumber){
             case "1":
