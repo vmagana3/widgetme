@@ -3,41 +3,41 @@ class AgendaMedizonaWidget extends HTMLElement {
         super();
         this.shadow = this.attachShadow({ mode: "open" });
         this.wrapperPrincipal = document.createElement("div");
-        this.showCalendar = this.getAttribute("showCalendar") !== null;
+        this.showCalendar = this.getAttribute("showCalendar") === "true";
         this.width = this.getAttribute("width") || "100%";
-        this.currentDate = this.getCurrentDate();
-        this.appointmentList = [];
+        this._currentDate = this.getCurrentDate();
+        this._appointmentList = [];
         this.currentAppointmentItem = {};
+    }
+
+    
+    set currentDate(value){
+        this._currentDate = value;
+        console.log("Cambio de valor de curren date ---");
+        this.initWidget();
+    }
+
+    set appointmentList(value){
+        this._appointmentList = value;
+        console.log("Se setearon los appointments ---");
+        this.createAppointmentsComponent();
     }
     
     connectedCallback(){
+        this.shadow.replaceChildren();
         this.initWidget();
     }
 
     initWidget(){
-        this.wrapperPrincipal.setAttribute("class", "wrapperPrincipal");
-         
-
-        const wrapperAppointments = document.createElement("div");
-        wrapperAppointments.setAttribute("class", "wrapperAppointments");
-
-        //DIV CALENDAR
+        console.log("CURRENT DATE:", this._currentDate);
         if(this.showCalendar){
-            this.createCalendar();
+            this.createCalendarComponent();
+        }else{
+            this.getAppointmentData();
         }
 
-
-        //DIV LEFT AND RIGHT
-        const divLeft = document.createElement("div");
-        divLeft.setAttribute("class","divLeft");
-        divLeft.setAttribute("id", "todayAppointment");
-
-        const divRight = document.createElement("div");
-        divRight.setAttribute("class","divRight");
-        divRight.setAttribute("id", "listAppointments");
-
-        wrapperAppointments.appendChild(divLeft);
-        wrapperAppointments.appendChild(divRight);
+        //DIV MAIN
+        this.wrapperPrincipal.setAttribute("class", "wrapperPrincipal");
 
         const style =  document.createElement("style");
          style.textContent = `
@@ -52,61 +52,98 @@ class AgendaMedizonaWidget extends HTMLElement {
                 padding:15px;
                 display:flex;
                 font-family: "Figtree", sans-serif;
-            }
-
-            .wrapperAppointments{
-                width:${this.showCalendar? "100%":"50%"};
-                height:80%;
-                display:flex;
-                margin:0px 0px 0px 15px;
-            }
-
-            .divLeft{
-                display:flex;
-                flex-direction:column;
-                width:50%;
-                justify-content:space-between;
-            }
-
-            .divRight{
-                display:flex;
-                flex-direction:column;
-                justify-content:space-between;
-                width:50%;
             } 
         `;
 
-        
-        
-        this.wrapperPrincipal.appendChild(wrapperAppointments);
         this.shadow.appendChild(this.wrapperPrincipal);
         this.shadow.appendChild(style);
 
     }
 
-    createCalendar(){
+    createAppointmentsComponent(){
 
-        console.log("CURRENT DATE:", this.currentDate);
+        //WRAPPER APPOINTMENTS
+        let wrapperAppointments = this.shadow.querySelector(".wrapperAppointments");
+        if(wrapperAppointments){
+            wrapperAppointments.replaceChildren();
+        }else{
+            wrapperAppointments = document.createElement("div");
+            wrapperAppointments.setAttribute("class", "wrapperAppointments");
+            this.wrapperPrincipal.appendChild(wrapperAppointments);
+        }
+        
+        
+        //DIV LEFT AND RIGHT
+        const divLeft = document.createElement("div");
+        divLeft.setAttribute("class","divLeft");
+        divLeft.setAttribute("id", "todayAppointment");
 
-         //DIV CALENDAR
-         const divCalendar = document.createElement("div");
-         divCalendar.setAttribute("class", "divCalendar");
-         divCalendar.setAttribute("id", "calendarDiv");
+        const divRight = document.createElement("div");
+        divRight.setAttribute("class","divRight");
+        divRight.setAttribute("id", "listAppointments");
 
-         //CALENDAR MONTH AND YEAR
-         const monthYear = document.createElement("div");
-         monthYear.setAttribute("class", "monthYearDiv");
+        const style =  document.createElement("style");
+
+        style.textContent = `
+           .wrapperAppointments{
+               width:${this.showCalendar? "100%":"50%"};
+               height:80%;
+               display:flex;
+               margin:0px 0px 0px 15px;
+           }
+
+           .divLeft{
+               display:flex;
+               flex-direction:column;
+               width:50%;
+               justify-content:space-between;
+           }
+
+           .divRight{
+               display:flex;
+               flex-direction:column;
+               justify-content:space-between;
+               width:50%;
+           } 
+       `;
+
+        wrapperAppointments.appendChild(divLeft);
+        wrapperAppointments.appendChild(divRight);
+        wrapperAppointments.appendChild(style);
         
 
-         const monthText = document.createElement("p");
-         monthText.setAttribute("class", "monthText");
-         monthText.textContent = this.currentDate.monthName;
+        this.printCurrentAppointment();
+        this.printAppointmentList();
+    }
 
-         const yearText = document.createElement("p");
-         yearText.setAttribute("class", "yearText");
-         yearText.textContent = this.currentDate.year;
+    createCalendarComponent(){
+        let divCalendar = this.shadow.querySelector(".divCalendar");
+        
+        if(divCalendar){
+            divCalendar.replaceChildren();
+        }else{
+            //DIV CALENDAR
+            divCalendar = document.createElement("div");
+            divCalendar.setAttribute("class", "divCalendar");
+            divCalendar.setAttribute("id", "calendarDiv");
+            this.wrapperPrincipal.appendChild(divCalendar);
+        }
+        
 
-         //CALENDAR HEADER
+        //CALENDAR MONTH AND YEAR
+        const monthYear = document.createElement("div");
+        monthYear.setAttribute("class", "monthYearDiv");
+        
+
+        const monthText = document.createElement("p");
+        monthText.setAttribute("class", "monthText");
+        monthText.textContent = this._currentDate.monthName;
+
+        const yearText = document.createElement("p");
+        yearText.setAttribute("class", "yearText");
+        yearText.textContent = this._currentDate.year;
+
+        //CALENDAR HEADER
         const headerDays =  document.createElement("div");
         headerDays.setAttribute("class", "headerDays");
 
@@ -156,6 +193,7 @@ class AgendaMedizonaWidget extends HTMLElement {
                 font-size:16px;
                 margin:0;
                 font-weight:bold;
+                text-align:center;
             }
 
             .gridMonth{
@@ -165,9 +203,29 @@ class AgendaMedizonaWidget extends HTMLElement {
             }
 
             .monthGridItem{
+                width:25px;
+                height:25px;
+                border-radius:100%;
+                display:flex;
+                justify-content:center;
+                align-items:center;
                 font-size:16px;
                 color:#181C32;
                 margin:0;
+                text-align:center;
+            }
+
+            #todayItem{
+                width:25px;
+                height:25px;
+                background-color:#E75B0B;
+                border-radius:100%;
+            }
+
+            .monthGridItem:hover{
+                cursor:pointer;
+                background-color:rgb(225 235 247);
+
             }
         `;
 
@@ -178,10 +236,14 @@ class AgendaMedizonaWidget extends HTMLElement {
             headerDays.appendChild(headerDayItem);
         }
 
-        this.currentDate.monthDays.forEach((date)=>{
+        this._currentDate.monthDays.forEach((date)=>{
             const monthGridItem = document.createElement("p");
             monthGridItem.setAttribute("class", "monthGridItem");
-            monthGridItem.setAttribute("date", date.dateFormatted);
+            if(date.isToday){
+                monthGridItem.setAttribute("id","todayItem");
+            }
+            monthGridItem.setAttribute("data-date", date.date);
+            monthGridItem.addEventListener("click", (e) => this.clickDate(e));
             monthGridItem.textContent = date.day;
             gridMonth.appendChild(monthGridItem);
         });
@@ -193,16 +255,21 @@ class AgendaMedizonaWidget extends HTMLElement {
         divCalendar.appendChild(headerDays);
         divCalendar.appendChild(gridMonth);
         divCalendar.appendChild(style);
-        this.wrapperPrincipal.appendChild(divCalendar);
        
         this.getAppointmentData();
     }
 
-    getAppointmentData(date){
-        //Petición de appointments
-        //Recorremos cada appointment y ejecutamos createItem por cada uno
+    clickDate(e){
+        const date = e.target.dataset.date;
+        if(date){
+            this.currentDate = this.getCurrentDate(date);
+        }
+    }
 
-        fetch("https://api.staging.medizona.com.mx/api/v3/appointments/events?date_from=2024-11-09&date_to=2024-11-09",{
+    getAppointmentData(){
+
+        /* fetch(`https://api.staging.medizona.com.mx/api/v3/appointments/events?date_from=${this.currentDate.formatted}&date_to=${this.currentDate.formatted}`,{ */
+        fetch(`https://api.staging.medizona.com.mx/api/v3/appointments/events?date_from=${this._currentDate.formatted}&date_to=${this._currentDate.formatted}`,{
             method:"GET",
             headers: {
                 'Content-Type': 'application/json',
@@ -212,10 +279,26 @@ class AgendaMedizonaWidget extends HTMLElement {
         .then((response)=>{
             response.json().then((data)=>{
                 console.log("DATA:", data.data);
-                if(data?.data?.length){
-                    this.appointmentList = data.data.filter((appointment) => appointment.calendar === 'appointment').slice(-3);
+
+                const filteredByAppointment = data.data.filter((item) => item.calendar === 'appointment');
+                this.appointmentList = filteredByAppointment.slice(-3);
+
+
+              
+
+                //const parentRight = this.shadow.getElementById("listAppointments");
+
+                /* if(parentRight.hasChildNodes()){
+                    while(parentRight.firstChild){
+                        parentRight.removeChild(parentRight.firstChild);
+                    }
                     this.printData({},this.appointmentList); 
-                }
+                }else{
+                    this.printData({},this.appointmentList); 
+                } */
+                
+
+                
             })
         })
 
@@ -224,19 +307,21 @@ class AgendaMedizonaWidget extends HTMLElement {
         
     }
 
-    printData(currentAppointment, appointmentList){
-
+    printAppointmentList(){
         const parentRight = this.shadow.getElementById("listAppointments");
-        appointmentList.forEach((item)=>{
-            parentRight.appendChild(this.createItemList(item)); 
-        });
-
-        this.createCurrentAppointment();
+        if(this._appointmentList?.length){
+            this._appointmentList.forEach((item)=>{
+                parentRight.appendChild(this.createItemList(item)); 
+            });
+        }else{
+            const noAppointmentsText = document.createElement("p");
+            noAppointmentsText.textContent = "Sin citas recientes";
+            parentRight.appendChild(noAppointmentsText);
+        }
     }
-
-    createCurrentAppointment(){
+    
+    printCurrentAppointment(){
         const parentLeft =  this.shadow.getElementById("todayAppointment");
-
 
         //DIV DATEEEE
         const divDate = document.createElement("div");
@@ -248,8 +333,8 @@ class AgendaMedizonaWidget extends HTMLElement {
         dayNumber.setAttribute("class", "dayNumber");
         
 
-        dayName.textContent = this.currentDate.name;
-        dayNumber.textContent = this.currentDate.number;
+        dayName.textContent = this._currentDate.name;
+        dayNumber.textContent = this._currentDate.number;
 
         divDate.appendChild(dayName);
         divDate.appendChild(dayNumber);
@@ -388,16 +473,17 @@ class AgendaMedizonaWidget extends HTMLElement {
         divTitle.setAttribute("class", "divTitle");
 
         const appointmentTitle = document.createElement("p");
-        appointmentTitle.textContent = 'Consulta';
+        //appointmentTitle.textContent = 'Consulta';
+        appointmentTitle.textContent = data.title;
         appointmentTitle.setAttribute("class", "appointmentTitle");
 
 
         const appointmentDetails = document.createElement("div");
         appointmentDetails.setAttribute("class", "appointmentDetails");
 
-        const patientName = document.createElement("p");
+        /* const patientName = document.createElement("p");
         patientName.textContent = data?.title;
-        patientName.setAttribute("class", "patientName");
+        patientName.setAttribute("class", "patientName"); */
 
         const appointmentDate =  document.createElement("p");
         /* appointmentDate.textContent = '6:30 P.M. - 7:30 P.M.'; */
@@ -407,7 +493,7 @@ class AgendaMedizonaWidget extends HTMLElement {
 
         divTitle.appendChild(appointmentTitle);
         appointmentItem.appendChild(divTitle);
-        appointmentDetails.appendChild(patientName);
+        //appointmentDetails.appendChild(patientName);
         appointmentDetails.appendChild(appointmentDate);
 
         const style =  document.createElement("style");
@@ -469,9 +555,8 @@ class AgendaMedizonaWidget extends HTMLElement {
 
     
 
-    getCurrentDate(){
-        const today = new Date();
-
+    getCurrentDate(date){
+        const today = date ? new Date(date + 'T00:00:00') : new Date();
         // Obtener los componentes de la fecha (año, mes y día)
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0'); // +1 porque los meses empiezan desde 0
@@ -480,7 +565,6 @@ class AgendaMedizonaWidget extends HTMLElement {
         const dayNumber = today.getDay();
         // Formatear la fecha como "YYYY-MM-DD"
         const formattedDate = `${year}-${month}-${day}`;
-
 
         return {
             name:this.getDayName(dayNumber),
@@ -501,14 +585,12 @@ class AgendaMedizonaWidget extends HTMLElement {
        
 
         if (dayStart.getDay() !== 0) {
-            //const offset = (dayStart.getDay() + 6) % 7; // Calcular días hasta el lunes
             const offset = dayStart.getDay();
             dayStart.setDate(dayStart.getDate() - offset);
            
         }
 
         if (dayEnd.getDay() !== 6) {
-            //const offset = 7 - dayEnd.getDay(); // Calcular días hasta el domingo
             const offset = 6 - dayEnd.getDay();
             dayEnd.setDate(dayEnd.getDate() + offset);
         }
