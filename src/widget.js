@@ -281,30 +281,13 @@ class AgendaMedizonaWidget extends HTMLElement {
                 console.log("DATA:", data.data);
 
                 const filteredByAppointment = data.data.filter((item) => item.calendar === 'appointment');
-                this.appointmentList = filteredByAppointment.slice(-3);
-
-
-              
-
-                //const parentRight = this.shadow.getElementById("listAppointments");
-
-                /* if(parentRight.hasChildNodes()){
-                    while(parentRight.firstChild){
-                        parentRight.removeChild(parentRight.firstChild);
-                    }
-                    this.printData({},this.appointmentList); 
-                }else{
-                    this.printData({},this.appointmentList); 
-                } */
-                
-
-                
+                const closestAppointments = this.getClosestAppointments(filteredByAppointment);
+                console.log("LOS MÁS CERNCANOS:", closestAppointments);
+                this.appointmentList = closestAppointments;
             })
         })
 
         .catch((error)=>console.log("ERROR:", error));
-
-        
     }
 
     printAppointmentList(){
@@ -612,13 +595,10 @@ class AgendaMedizonaWidget extends HTMLElement {
     }
 
      formatToAmPm(dateRange) {
-        // Dividir la cadena en fecha de inicio y fin (solo necesitamos la primera)
-        const [startDate] = dateRange.split(" - ");
-        
         // Crear un objeto Date a partir de la cadena
-        const date = new Date(startDate);
+        const date = new Date(dateRange);
         
-        // Obtener horas y minutos
+        // Obtener horas y minutos en UTC
         let hours = date.getUTCHours();
         const minutes = date.getUTCMinutes();
         
@@ -627,10 +607,10 @@ class AgendaMedizonaWidget extends HTMLElement {
         
         // Convertir a formato de 12 horas
         hours = hours % 12 || 12; // Si es 0 horas, ajustarlo a 12
-    
+        
         // Formatear los minutos en dos dígitos
         const formattedMinutes = minutes.toString().padStart(2, "0");
-    
+        
         // Retornar la hora formateada
         return `${hours}:${formattedMinutes} ${ampm}`;
     }
@@ -686,6 +666,24 @@ class AgendaMedizonaWidget extends HTMLElement {
             
         }
 
+    }
+
+     getClosestAppointments(appointments) {
+        const now = new Date();
+    
+        // Mapear cada objeto con su diferencia en milisegundos respecto a la fecha actual
+        const sortedAppointments = appointments
+            .map((appointment) => {
+                const appointmentDate = new Date(appointment.start); // 'date' es la propiedad con la fecha
+                console.log("Appointment date:", new Date(appointment.start));
+                const diff = Math.abs(appointmentDate - now); // diferencia en ms
+                return { ...appointment, diff };
+            })
+            // Ordenar por la diferencia (más cercanos primero)
+            .sort((a, b) => a.diff - b.diff);
+    
+        // Retornar los primeros 4 objetos más cercanos
+        return sortedAppointments.slice(0, 4);
     }
 }
 
