@@ -4,13 +4,26 @@ class AgendaMedizonaWidget extends HTMLElement {
         this.shadow = this.attachShadow({ mode: "open" });
         this.wrapperPrincipal = document.createElement("div");
         this.showCalendar = this.getAttribute("showCalendar") === "true";
+        this.token = this.getAttribute("token");
         this.width = this.getAttribute("width") || "100%";
         this._currentDate = this.getCurrentDate();
         this._appointmentList = [];
-        this.currentAppointmentItem = {};
+        this._currentAppointmentItemData = {};
+        this._loadingAppointments = false;
     }
 
     
+    set loadingAppointments(value){
+        console.log("CAMBIO LOADER:", value);
+        this._loadingAppointments = value;
+        if(value === true){
+            this.showLoader();
+            return;
+        }
+
+        this.hideLoader();
+    }
+
     set currentDate(value){
         this._currentDate = value;
         console.log("Cambio de valor de curren date ---");
@@ -22,6 +35,10 @@ class AgendaMedizonaWidget extends HTMLElement {
         console.log("Se setearon los appointments ---");
         this.createAppointmentsComponent();
     }
+
+    set currentAppointmentItemData(value){
+        this._currentAppointmentItemData = value;
+    }
     
     connectedCallback(){
         this.shadow.replaceChildren();
@@ -30,7 +47,13 @@ class AgendaMedizonaWidget extends HTMLElement {
 
     initWidget(){
         console.log("CURRENT DATE:", this._currentDate);
-        if(this.showCalendar){
+        console.log("TOKEEEEEEN VALUE:", this.token);
+
+        if(!this.token){
+            this.showRegisterAnimation();
+        }
+
+        if(this.showCalendar && this.token){
             this.createCalendarComponent();
         }else{
             this.getAppointmentData();
@@ -49,15 +72,225 @@ class AgendaMedizonaWidget extends HTMLElement {
                 height:auto;
                 border:1px solid #D5D8E3;
                 border-radius:16px;
-                padding:15px;
                 display:flex;
                 font-family: "Figtree", sans-serif;
+                position:relative;
             } 
         `;
 
         this.shadow.appendChild(this.wrapperPrincipal);
         this.shadow.appendChild(style);
 
+    }
+
+    showRegisterAnimation(){
+        console.log("REGISTER ANIMATION FUNCTION -----------");
+        const animationDiv = document.createElement("div");
+        animationDiv.setAttribute("class", 'animationContent');
+
+        const button = document.createElement("button");
+        button.setAttribute("class", "registerButton");
+        button.textContent = "Regístrate";
+
+        const banner = document.createElement("div");
+        banner.setAttribute("class", "banner");
+
+        const bannerDiv = document.createElement("div");
+        bannerDiv.setAttribute("class", "bannerDiv");
+
+        const logo = document.createElement("img");
+        logo.setAttribute("class", "img");
+        logo.src = '../dist/logotipo.png';
+
+        const text = document.createElement("p");
+        text.setAttribute("class", "text");
+        text.textContent = "¡Inicia sesión en tu consultorio inteligente!";
+    
+        /* for(let i = 0; i < 300; i++){
+            console.log("CREANDO BUBBLE", i);
+            const bubbleElement = document.createElement("div");
+            bubbleElement.setAttribute("class", "bubbleElement");
+    
+            bubbleElement.style.top = `${Math.random() * 100}%`;
+            bubbleElement.style.left = `${Math.random() * 100}%`;
+    
+            const randomDuration = Math.floor(Math.random() * (10 - 5 + 1)) + 5;  
+            bubbleElement.style.animationDuration = `${randomDuration}s`;
+    
+            animationDiv.appendChild(bubbleElement);
+        } */
+    
+        const style = document.createElement("style");
+        style.textContent = `
+            .animationContent{
+                width:100%;
+                height:200px;
+                position:relative;
+                overflow: hidden;
+                display:flex;
+                justify-content:center;
+                align-items:center;
+            }
+
+            .registerButton{
+                width:60%;
+                position: relative;
+                padding: 10px 30px;
+                font-size: 18px;
+                color: #34367F;
+                background-color: white;
+                border: 1px solid #34367F;
+                cursor: pointer;
+                overflow: hidden;
+                transition: color 0.3s ease;
+                border-radius: 5px;
+                margin-top:10px;
+                font-weight:bold;
+                font-size:16px;
+            }
+
+            .registerButton:before{
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                transform: translateX(-100%);
+                clip-path: polygon(30% 0%, 100% 0%, 70% 100%, 0% 100%);
+                background: linear-gradient(to left, #5f48ab, #3572b5);
+                animation: slideAnimation 6s ease infinite; 
+            }
+
+            @keyframes slideAnimation {
+                0% {
+                    transform: translateX(-100%); /* Comienza fuera de la pantalla */
+                }
+                50% {
+                    transform: translateX(100%); /* Llega a su posición original */
+                }
+                100% {
+                    transform: translateX(-100%); /* Se desplaza completamente hacia la derecha */
+                }
+            }
+
+            .registerButton:hover::before {
+                transform: translateX(100%); /* Desliza la capa fuera del botón */
+            }
+
+            .img{
+               
+            }
+
+            .banner{
+                width:auto;
+                height:auto;
+                display:flex;
+                justify-content:space-evenly;
+                align-items:center;
+                position:relative;
+            }
+
+            .bannerDiv{
+                width:50%;
+                display:flex;
+                flex-direction:column;
+                justify-content:start;
+            }
+
+            .text{
+                font-weight:bold; 
+                font-size:140%;
+                width:65%;
+                text-align:left;
+                margin:0;
+                background: linear-gradient(to left, #5f48ab, #3572b5);
+                -webkit-background-clip: text; 
+                color: transparent;
+            }
+
+            .bubbleElement{
+                width:5px;
+                height:5px;
+                border-radius:50%;
+                background-color:#34367F;
+                position:absolute;
+                animation:snowfall 5s linear forwards infinite;    
+            }
+    
+            @keyframes snowfall{
+                0%{
+                    transform: translate(0, 0);
+                }
+                20%{
+                    transform: translate(20px, 20px);
+                }
+                40%{
+                    transform: translate(40px, 40px);
+                }
+                60%{
+                    transform: translate(60px, 60px);
+                }
+                80%{
+                    transform: translate(80px, 80px);
+                }
+                100%{
+                    transform: translate(100px, 100px);
+                }
+            }
+        `;
+    
+        animationDiv.appendChild(style);
+        banner.appendChild(logo);
+        bannerDiv.appendChild(text);
+        bannerDiv.appendChild(button);
+        banner.appendChild(bannerDiv);
+        animationDiv.appendChild(banner);
+        this.wrapperPrincipal.appendChild(animationDiv);
+    }
+
+    showLoader(){
+        const loader = document.createElement("div");
+        loader.setAttribute("class", "loaderContent");
+
+        const loaderText = document.createElement("p");
+        loaderText.setAttribute("class", "loaderText");
+        loaderText.textContent = "Cargando citas . . .";
+       
+        const style = document.createElement("style");
+        style.textContent = `
+            .loaderContent{
+                display:flex;
+                justify-content:center;
+                align-items:center;
+                position:absolute;
+                width:100%;
+                height:100%;
+                background-color:rgba(206, 212, 218, 0.90);
+                border-radius:16px;
+            }
+
+            .loaderText{
+                color:#3F4254;
+                font-weight:bold;
+            }
+            .fade-out {
+                opacity: 1;
+                transition: opacity 0.5s ease;
+            }
+
+            .fade-out-remove {
+                opacity: 0;
+            }
+        `;
+        loader.appendChild(loaderText);
+        loader.appendChild(style);
+        this.wrapperPrincipal.appendChild(loader);
+    }
+
+    hideLoader(){
+        const loader = this.shadow.querySelector(".loaderContent");
+        this.wrapperPrincipal.removeChild(loader);
     }
 
     createAppointmentsComponent(){
@@ -87,7 +320,7 @@ class AgendaMedizonaWidget extends HTMLElement {
         style.textContent = `
            .wrapperAppointments{
                width:${this.showCalendar? "100%":"50%"};
-               height:80%;
+               height:85%;
                display:flex;
                margin:0px 0px 0px 15px;
            }
@@ -97,6 +330,7 @@ class AgendaMedizonaWidget extends HTMLElement {
                flex-direction:column;
                width:50%;
                justify-content:space-between;
+               margin:20px;
            }
 
            .divRight{
@@ -104,6 +338,7 @@ class AgendaMedizonaWidget extends HTMLElement {
                flex-direction:column;
                justify-content:space-between;
                width:50%;
+               margin:20px;
            } 
        `;
 
@@ -160,6 +395,7 @@ class AgendaMedizonaWidget extends HTMLElement {
                 flex-direction:column;
                 width:50%;
                 height:auto;
+                margin:20px;
             }
 
             .monthYearDiv{
@@ -225,7 +461,6 @@ class AgendaMedizonaWidget extends HTMLElement {
             .monthGridItem:hover{
                 cursor:pointer;
                 background-color:rgb(225 235 247);
-
             }
         `;
 
@@ -260,6 +495,7 @@ class AgendaMedizonaWidget extends HTMLElement {
     }
 
     clickDate(e){
+        console.log("ELEMENT CLICKED:", e.target);
         const date = e.target.dataset.date;
         if(date){
             this.currentDate = this.getCurrentDate(date);
@@ -267,13 +503,18 @@ class AgendaMedizonaWidget extends HTMLElement {
     }
 
     getAppointmentData(){
+        
+        if(!this.token){
+            return;
+        }
 
+        this.loadingAppointments = true;
         /* fetch(`https://api.staging.medizona.com.mx/api/v3/appointments/events?date_from=${this.currentDate.formatted}&date_to=${this.currentDate.formatted}`,{ */
         fetch(`https://api.staging.medizona.com.mx/api/v3/appointments/events?date_from=${this._currentDate.formatted}&date_to=${this._currentDate.formatted}`,{
             method:"GET",
             headers: {
                 'Content-Type': 'application/json',
-                 "Authorization": `Bearer 3732|blbGkzDM0B1xiwt4dgOJhwloIFPrGNGFm1OekH4p52e33eb7`,
+                 "Authorization": `Bearer ${this.token}`,
             },
         })
         .then((response)=>{
@@ -281,13 +522,25 @@ class AgendaMedizonaWidget extends HTMLElement {
                 console.log("DATA:", data.data);
 
                 const filteredByAppointment = data.data.filter((item) => item.calendar === 'appointment');
+
+                /* console.log("LOS MÁS CERNCANOS:", closestAppointments); */
                 const closestAppointments = this.getClosestAppointments(filteredByAppointment);
-                console.log("LOS MÁS CERNCANOS:", closestAppointments);
-                this.appointmentList = closestAppointments;
+                
+
+                const current = this.getClosestAppointments(filteredByAppointment);
+                this.currentAppointmentItemData = current[0];
+
+                this.appointmentList = closestAppointments.slice(1,4);
+                this.loadingAppointments = false;
+                return;
+               
             })
         })
 
-        .catch((error)=>console.log("ERROR:", error));
+        .catch((error)=>{
+            console.log("ERROR:", error);
+            this.loadingAppointments = false;
+        });
     }
 
     printAppointmentList(){
@@ -298,8 +551,10 @@ class AgendaMedizonaWidget extends HTMLElement {
             });
         }else{
             const noAppointmentsText = document.createElement("p");
+            
             noAppointmentsText.textContent = "Sin citas recientes";
             parentRight.appendChild(noAppointmentsText);
+            noAppointmentsText.setAttribute("class", "noAppointmentsText");
         }
     }
     
@@ -321,48 +576,54 @@ class AgendaMedizonaWidget extends HTMLElement {
 
         divDate.appendChild(dayName);
         divDate.appendChild(dayNumber);
+        parentLeft.appendChild(divDate);
 
-        //DIV CURRENT APPOINTMENT
-        const currentAppointmentItem = document.createElement("div");
-        currentAppointmentItem.setAttribute("class", "currentAppointmentItem");
-
-
-        //CURRENT title
-        const divTitle = document.createElement("div");
-        divTitle.setAttribute("class", "divTitleCurrent");
-
-        const point = document.createElement("div");
-        point.setAttribute("class", "divPoint");
-
-        const appointmentCurrentTitle = document.createElement("p");
-        appointmentCurrentTitle.textContent = 'Cirugía';
-        appointmentCurrentTitle.setAttribute("class", "appointmentCurrentTitle");
-
-        divTitle.appendChild(point);
-        divTitle.appendChild(appointmentCurrentTitle);
+        if(this._currentAppointmentItemData?.id){
+            //DIV CURRENT APPOINTMENT
+            const currentAppointmentItem = document.createElement("div");
+            currentAppointmentItem.setAttribute("class", "currentAppointmentItem");
 
 
-        //CURRENT description
-        const appointmentDescription = document.createElement("p");
-        appointmentDescription.textContent = 'Información más detallada de lo que el doctor necesite.';
-        appointmentDescription.setAttribute("class", "appointmentDescription");
+            //CURRENT title
+            const divTitle = document.createElement("div");
+            divTitle.setAttribute("class", "divTitleCurrent");
+
+            const point = document.createElement("div");
+            point.setAttribute("class", "divPoint");
+
+            const appointmentCurrentTitle = document.createElement("p");
+            appointmentCurrentTitle.textContent = this._currentAppointmentItemData?.title;
+            appointmentCurrentTitle.setAttribute("class", "appointmentCurrentTitle");
+
+
+            //CURRENT description
+            const appointmentDescription = document.createElement("p");
+            appointmentDescription.textContent = this._currentAppointmentItemData?.appointment?.comments;
+            appointmentDescription.setAttribute("class", "appointmentDescription");
 
 
 
-        //CURRENT details
-        const divDetails = document.createElement("div");
-        divDetails.setAttribute("class", "appointmentDetails");
+            //CURRENT details
+            const divDetails = document.createElement("div");
+            divDetails.setAttribute("class", "appointmentDetails");
 
-        const patientName = document.createElement("p");
-        patientName.textContent = 'Camilo Gándara';
-        patientName.setAttribute("class", "patientCurrentName");
+            const appointmentDate =  document.createElement("p");
+            appointmentDate.textContent = `${this.formatToAmPm(this._currentAppointmentItemData?.start)} - ${this.formatToAmPm(this._currentAppointmentItemData?.end)}`;
+            appointmentDate.setAttribute("class","appointmentCurrentDate");
 
-        const appointmentDate =  document.createElement("p");
-        appointmentDate.textContent = '6:30 P.M. - 7:30 P.M.';
-        appointmentDate.setAttribute("class","appointmentCurrentDate");
+            divTitle.appendChild(point);
+            divTitle.appendChild(appointmentCurrentTitle);
 
-        divDetails.appendChild(patientName);
-        divDetails.appendChild(appointmentDate);
+            currentAppointmentItem.appendChild(divTitle);
+            currentAppointmentItem.appendChild(appointmentDescription);
+            currentAppointmentItem.appendChild(divDetails);
+            divDetails.appendChild(appointmentDate);
+            parentLeft.appendChild(currentAppointmentItem);
+        }/* else{
+            const noCurrentAppointmentText = document.createElement("p");
+            noCurrentAppointmentText.setAttribute("class", "noCurrentAppointment");
+
+        } */
 
         const style = document.createElement("style");
         style.textContent = `
@@ -436,14 +697,15 @@ class AgendaMedizonaWidget extends HTMLElement {
                 margin:0px 0px 10px 0px;
                 color:#7E8299;
             }
+
+            .noAppointmentsText{
+                color:#7E8299;
+            }
         `;
         
-        currentAppointmentItem.appendChild(divTitle);
-        currentAppointmentItem.appendChild(appointmentDescription);
-        currentAppointmentItem.appendChild(divDetails);
+        
 
-        parentLeft.appendChild(divDate);
-        parentLeft.appendChild(currentAppointmentItem);
+      
         parentLeft.appendChild(style);
 
     }
@@ -505,6 +767,7 @@ class AgendaMedizonaWidget extends HTMLElement {
                 font-weight:bold;
                 font-size:16px;
                 margin:5px 0px 10px 0px;
+                text-transform: capitalize;
             }
 
             .appointmentDetails{
@@ -671,18 +934,20 @@ class AgendaMedizonaWidget extends HTMLElement {
      getClosestAppointments(appointments) {
         const now = new Date();
     
-        // Mapear cada objeto con su diferencia en milisegundos respecto a la fecha actual
-        const sortedAppointments = appointments
+         // Filtrar solo las citas futuras y mapear con la diferencia en milisegundos respecto a la fecha actual
+            const sortedAppointments = appointments
             .map((appointment) => {
-                const appointmentDate = new Date(appointment.start); // 'date' es la propiedad con la fecha
-                console.log("Appointment date:", new Date(appointment.start));
-                const diff = Math.abs(appointmentDate - now); // diferencia en ms
+                const appointmentDate = new Date(appointment.start);
+                const diff = appointmentDate - now; // diferencia en ms
                 return { ...appointment, diff };
-            })
+            }).sort((a, b) => a.diff - b.diff);
+            // Filtrar para mantener solo las citas futuras
+            /* .filter((appointment) => appointment.diff > 0) */
             // Ordenar por la diferencia (más cercanos primero)
-            .sort((a, b) => a.diff - b.diff);
-    
+            
+
         // Retornar los primeros 4 objetos más cercanos
+        console.log("CLOSEST:", sortedAppointments.slice(0,4));
         return sortedAppointments.slice(0, 4);
     }
 }
